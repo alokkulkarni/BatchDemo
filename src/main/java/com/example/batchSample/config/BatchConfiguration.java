@@ -1,21 +1,23 @@
 package com.example.batchSample.config;
 
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.Step;
-import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.*;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.core.job.builder.FlowBuilder;
-import org.springframework.batch.core.job.builder.FlowJobBuilder;
-import org.springframework.batch.core.job.flow.Flow;
 import org.springframework.batch.core.job.flow.FlowExecutionStatus;
-import org.springframework.batch.core.job.flow.FlowJob;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
+import org.springframework.batch.core.step.tasklet.SystemCommandTasklet;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.integration.core.MessagingTemplate;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHeaders;
+import org.springframework.messaging.support.GenericMessage;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created by alokkulkarni on 30/09/16.
@@ -28,7 +30,20 @@ public class BatchConfiguration {
 
     @Autowired
     private StepBuilderFactory stepBuilderFactory;
-    
+
+
+
+    @Bean
+    public Step commandStep() {
+        return stepBuilderFactory.get("commandStep")
+                .tasklet((contribution, chunkContext) -> {
+                    SystemCommandTasklet systemCommandTasklet = new SystemCommandTasklet();
+                    systemCommandTasklet.setCommand("cp ~/Documents/myImage.jpg ~/Downloads/");
+                    systemCommandTasklet.setTimeout(10000);
+                    systemCommandTasklet.execute(contribution,chunkContext);
+                    return RepeatStatus.FINISHED;
+                }).build();
+    }
 
     @Bean
     public Step startStep() {
@@ -65,7 +80,9 @@ public class BatchConfiguration {
     @Bean
     public Job job() {
         return jobBuilderFactory.get("job")
-                .start(startStep())
+                .listener(listenerSupport())
+                .start(commandStep())
+                .next(startStep())
                 .next(decider())
                 .from(decider()).on("ODD").to(oddStep())
                 .from(decider()).on("EVEN").to(evenStep())
@@ -74,6 +91,11 @@ public class BatchConfiguration {
 //				.from(decider()).on("EVEN").to(evenStep())
                 .end()
                 .build();
+    }
+
+    @Bean
+    JobListner listenerSupport() {
+        return new JobListner();
     }
 
 //    @Bean
@@ -107,5 +129,32 @@ public class BatchConfiguration {
     }
 
 
+    public static class JobListner implements JobExecutionListener {
 
+        @Autowired
+        @Qualifier("jobChannel")
+        MessageChannel channel;
+
+
+        @Override
+        public void beforeJob(JobExecution jobExecution) {
+            System.out.println("before job execution");
+        }
+
+        @Override
+        public void afterJob(JobExecution jobExecution) {
+            System.out.println("After job execution");
+
+            Map<String, Object> headerMap = new HashMap<>();
+            headerMap.put("serviceName", "myService");
+            headerMap.put("jobName", "tasklet");
+
+            MessageHeaders headers = new MessageHeaders(headerMap);
+
+
+
+            MessagingTemplate messagingTemplate = new MessagingTemplate();
+            messagingTemplate.send(channel, new GenericMessage<String>("my Name is Alok",headers));
+        }
+    }
 }
