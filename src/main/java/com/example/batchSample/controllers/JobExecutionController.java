@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * Created by alokkulkarni on 10/03/17.
  */
 @RestController
-@RequestMapping(value = "/jobs/executions")
+@RequestMapping(value = "/api/jobs/executions")
 public class JobExecutionController {
 
     private JobService jobservice;

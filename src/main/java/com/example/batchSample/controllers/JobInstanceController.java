@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
  * Created by alokkulkarni on 10/03/17.
  */
 @RestController
-@RequestMapping(value = "/jobs")
+@RequestMapping(value = "/api/jobs")
 public class JobInstanceController {
 
     private JobService jobService;

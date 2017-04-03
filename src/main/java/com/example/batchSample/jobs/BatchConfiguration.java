@@ -29,9 +29,13 @@ import java.util.Map;
 public class BatchConfiguration {
 
     @Autowired
+    public BatchConfiguration(JobRepository jobrepository, PlatformTransactionManager platformTransactionManager) {
+        this.jobrepository = jobrepository;
+        this.platformTransactionManager = platformTransactionManager;
+    }
+
     private JobRepository jobrepository;
 
-    @Autowired
     private PlatformTransactionManager platformTransactionManager;
 
     @Bean
@@ -49,6 +53,8 @@ public class BatchConfiguration {
     @Bean
     public Step commandStep() {
         return stepBuilderFactory().get("commandStep")
+                .allowStartIfComplete(true)
+                .transactionManager(platformTransactionManager)
                 .tasklet((contribution, chunkContext) -> {
                     SystemCommandTasklet systemCommandTasklet = new SystemCommandTasklet();
                     systemCommandTasklet.setCommand("cp ~/Documents/myImage.jpg ~/Downloads/");
@@ -99,18 +105,15 @@ public class BatchConfiguration {
     @Bean
     public Job job() {
         return jobBuilderFactory().get("job")
-                .preventRestart()
                 .repository(jobrepository)
                 .incrementer(new RunIdIncrementer())
                 .listener(listenerSupport())
-//                .start(commandStep())
-                .start(startStep())
+                .start(commandStep())
+                .next(startStep())
                 .next(decider())
                 .from(decider()).on("ODD").to(oddStep())
                 .from(decider()).on("EVEN").to(evenStep())
                 .from(oddStep()).on("*").to(decider())
-//				.from(decider()).on("ODD").to(oddStep())
-//				.from(decider()).on("EVEN").to(evenStep())
                 .end()
                 .build();
     }
@@ -176,7 +179,7 @@ public class BatchConfiguration {
 
 
             MessagingTemplate messagingTemplate = new MessagingTemplate();
-            messagingTemplate.send(channel, new GenericMessage<String>("my Name is Alok",headers));
+            messagingTemplate.send(channel, new GenericMessage<>("my Name is Alok", headers));
         }
     }
 }

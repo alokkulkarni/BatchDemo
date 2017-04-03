@@ -1,0 +1,57 @@
+<p>
+  <button class="btn btn-primary float-xs-right" (click)="getJobsExecution()">
+    <span class="glyphicon glyphicon-refresh"></span> <span>Refresh</span>
+  </button>
+  <button class="btn btn-primary float-xs-right" (click)="stopAllJobs()">
+    <span class="glyphicon glyphicon-stop"></span> <span>Stop All</span>
+  </button>
+</p>
+
+<div class="table-responsive">
+  <table id="execution" class="table table-striped table-fixed scroll">
+    <thead>
+    <tr>
+      <th class="col-md-3">Job Name</th>
+      <th class="col-md-2 text-xs-center">Execution Id</th>
+      <th class="col-md-2 text-xs-center">Job BatchId</th>
+      <th class="col-md-2 text-xs-center">Job Instance</th>
+      <th class="col-md-2 text-xs-center">Start Date</th>
+      <th class="col-md-2 text-xs-center">Start Time</th>
+      <th class="col-md-2 text-xs-center">Duration</th>
+      <th class="col-md-2 text-xs-center">Status</th>
+      <th class="col-md-2 text-xs-center">Exit Code</th>
+      <th class="col-md-2 text-xs-center">Job Running</th>
+      <th class="col-md-2 text-xs-center">Exception</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let jobExecutionInfo of jobsExecutionInfo">
+      <td><a class="hand">{{jobExecutionInfo.name}}</a></td>
+      <td><a class="hand">{{jobExecutionInfo.id}}</a></td>
+      <td>{{jobExecutionInfo.jobParametesrsString}}</td>
+      <td>
+        <a class="hand">{{jobExecutionInfo.jobInstanceId}}
+          <i class="fa fa-eye"></i>
+        </a>
+      </td>
+      <td>{{jobExecutionInfo.startDate}}</td>
+      <td>{{jobExecutionInfo.startTime}}</td>
+      <td>{{jobExecutionInfo.duration}}</td>
+      <td>{{jobExecutionInfo.status}}</td>
+      <td>{{jobExecutionInfo.exitStatus.exitCode}}</td>
+      <td>{{jobExecutionInfo.exitStatus.running}}</td>
+      <td>{{jobExecutionInfo.failureExceptions}}</td>
+      <td>
+        <button class="btn btn-primary" (click)="restartJob(jobExecutionInfo.id)">
+          <span class="glyphicon glyphicon-repeat"></span>
+        </button>
+      </td>
+      <td>
+        <button class="btn btn-primary" (click)="stopJob(jobExecutionInfo.id)">
+          <span class="glyphicon glyphicon-stop"></span>
+        </button>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>

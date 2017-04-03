@@ -1,11 +1,12 @@
 package com.example.batchSample.controllers;
 
+import com.example.batchSample.utils.JobUtils;
 import org.springframework.batch.admin.service.JobService;
 import org.springframework.batch.admin.web.JobInfo;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersInvalidException;
+import org.springframework.batch.core.*;
+import org.springframework.batch.core.configuration.JobRegistry;
 import org.springframework.batch.core.launch.JobExecutionNotRunningException;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.NoSuchJobException;
 import org.springframework.batch.core.launch.NoSuchJobExecutionException;
 import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
@@ -25,10 +26,16 @@ import java.util.List;
  * Created by alokkulkarni on 09/03/17.
  */
 @RestController
-@RequestMapping(value = "/jobs")
+@RequestMapping(value = "/api/jobs")
 public class JobController {
 
     private JobService jobservice;
+
+    @Autowired
+    private JobLauncher jobLauncher;
+
+    @Autowired
+    private JobRegistry jobRegistry;
 
 
     /**
@@ -110,11 +117,24 @@ public class JobController {
      * @throws NoSuchJobExecutionException         the no such job execution exception
      */
     @PostMapping(value = "/{executionId}/restart", produces = MediaType.APPLICATION_JSON_VALUE)
-    public JobExecution restartJob(@PathVariable("executionId") Long executionId) throws JobInstanceAlreadyCompleteException, NoSuchJobException, JobExecutionAlreadyRunningException, JobParametersInvalidException, JobRestartException, NoSuchJobExecutionException {
+    public Boolean restartJob(@PathVariable("executionId") Long executionId) throws JobInstanceAlreadyCompleteException, NoSuchJobException, JobExecutionAlreadyRunningException, JobParametersInvalidException, JobRestartException, NoSuchJobExecutionException {
 
         Assert.notNull(executionId, "JobExecutionId cannot be Null");
 
-        return jobservice.restart(executionId);
+        JobExecution jobExecution = jobservice.getJobExecution(executionId);
+        if (!JobUtils.isJobExecutionRestartable(jobExecution)) {
+            throw new JobRestartException(String.format("JobExecution with Id '%s' and state '%s' is not restartable.",
+                    jobExecution.getId(), jobExecution.getStatus()));
+        }
+
+        JobInstance lastInstance = jobExecution.getJobInstance();
+        Job job =  jobRegistry.getJob(lastInstance.getJobName());
+        JobExecution newJobExecution = jobLauncher.run(job, jobExecution.getJobParameters());
+
+        if (newJobExecution != null) {
+            return true;
+        }
+        return false;
     }
 
     /**
