@@ -60,8 +60,9 @@ public class BatchConfiguration {
                     systemCommandTasklet.setCommand("cp ~/Documents/myImage.jpg ~/Downloads/");
                     systemCommandTasklet.setTimeout(10000);
                     systemCommandTasklet.execute(contribution,chunkContext);
-                    return RepeatStatus.FINISHED;
-                }).build();
+                    throw new IllegalStateException();
+                })
+                .build();
     }
 
     @Bean
@@ -94,7 +95,8 @@ public class BatchConfiguration {
                 .tasklet((contribution, chunkContext) -> {
                     System.out.println("This is the odd tasklet");
                     return RepeatStatus.FINISHED;
-                }).build();
+                })
+                .build();
     }
 
     @Bean
